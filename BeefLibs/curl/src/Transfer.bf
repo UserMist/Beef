@@ -15,7 +15,7 @@ namespace CURL
 		List<uint8> mData = new List<uint8>() ~ delete _;
 		Stopwatch mStatsTimer = new Stopwatch() ~ delete _;
 		WaitEvent mDoneEvent ~ delete _;
-		Result<Span<uint8>> mResult;
+		Result<Span<uint8>, CURL.Easy.ReturnCode> mResult;
 
 		int mTotalBytes = -1;
 		int mBytesReceived = 0;
@@ -177,7 +177,7 @@ namespace CURL
 					outStr[i] = ' ';
 		}
 
-		public Result<Span<uint8>> Perform()
+		public Result<Span<uint8>, CURL.Easy.ReturnCode> Perform()
 		{
 			if (mHeaderList != null)
 				mCurl.SetOpt(.HTTPHeader, mHeaderList);
@@ -188,8 +188,8 @@ namespace CURL
 
 			switch (result)
 			{
-			case .Err:
-				return .Err;
+			case .Err(let errCode):
+				return .Err(errCode);
 			default:
 				if (mData.Count > 0)
 					return .Ok(.(&mData[0], mData.Count));
@@ -216,16 +216,16 @@ namespace CURL
 			return .Ok;
 		}
 
-		public Result<Span<uint8>> GetResult()
+		public Result<Span<uint8>, CURL.Easy.ReturnCode> GetResult()
 		{
 			if (mDoneEvent != null)
 				mDoneEvent.WaitFor();
 			return mResult;
 		}
 
-		public void GetContentType(String outContentType)
+		public Result<void> GetContentType(String outContentType)
 		{
-			mCurl.GetInfo(.ContentType, outContentType);
+			return mCurl.GetInfo(.ContentType, outContentType);
 		}
 
 		public void Cancel(bool wait = false)
